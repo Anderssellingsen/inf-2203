@@ -7,9 +7,11 @@ UiT The Arctic University of Norway
 This repository contains skeleton code (aka "precode") for a simple operating
 system that we call **Munix**.
 
-This code forms the basis for the Operating Systems Fundamentals
-course at UiT The Arctic University of Norway (INF-2203).
-The name comes from UiT's mascots,
+This code forms the basis for the
+Operating Systems Fundamentals course (INF-2203)
+at UiT The Arctic University of Norway.
+
+The name Munix comes from UiT's mascots,
 the ravens Huginn and Muninn from Norse mythology.
 The _mu_ can also refer to the Greek letter _μ_ as in the metric
 prefix for _micro_, since this is a very tiny OS.
@@ -50,11 +52,11 @@ Once your build environment is set up,
 the actual build is controlled by `make`.
 These are the main targets:
 
-<!-- Markdown note: I am using .py syntax because Doxygen's Markdown parser
-    does not support bash/shell scripts, and Python is the closest available
-    (it also has '#' for a comment Marker). -->
+<!-- Markdown note: I am using Python syntax for my shell examples
+    because Doxygen's Markdown parser does not support bash/shell scripts,
+    but Python has a similar-enough syntax with '#' comments. -->
 
-```{.py}
+```py
 make            # Default: Run tests and build image
 
 make dev        # Set up development tooling

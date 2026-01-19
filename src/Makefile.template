@@ -21,8 +21,9 @@ VPATH = $(srcdir) lib
 
 # Hack: Immediately recreate source directory tree in output dir.
 # This way we do not have to put explicit 'mkdir' steps before every command.
-_OUTPUTDIRS := $(shell find -L "$(srcdir)" -mindepth 1 -type d -printf '%P\0' \
-			| xargs -0 mkdir -p)
+_OUTDIRS := $(shell \
+	    (cd "$(srcdir)" && find -L * -type d -print0) \
+	    | xargs -0 mkdir -p)
 
 # Compilation Flags
 # ======================================================================
@@ -114,17 +115,18 @@ endif
 # Initial Ramdisk
 initrd.cpio: $(processes_image)
 	mkdir -p initrd/bin/
-	cp -u $(processes_image) initrd/bin/
-	cd initrd && find . -print0 \
-		| sort -z \
-		| cpio --null -ov --format=newc > ../$@
+	cp $(processes_image) initrd/bin/
+	cd initrd && find . \
+		| sort \
+		| sed 's|^\./||' \
+		| cpio -ov --format=newc > ../$@
 
 # Boot Image
 bootimage.iso: grub.cfg kernel/kernel initrd.cpio
 	mkdir -p bootimage/boot/grub/
-	cp -u kernel/kernel initrd.cpio bootimage/boot/
-	cp -u $(srcdir)/grub.cfg bootimage/boot/grub/
-	grub-mkrescue $(GRUBFLAGS) -o $@ bootimage/
+	cp kernel/kernel initrd.cpio bootimage/boot/
+	cp $(srcdir)/grub.cfg bootimage/boot/grub/
+	$(MKRESCUE) $(GRUBFLAGS) -o $@ bootimage/
 
 image: bootimage.iso
 
@@ -143,7 +145,7 @@ run: bootimage.iso
 	qemu-system-$(target_cpu) $(QEMUFLAGS) $(QEMUBOOT)
 
 debug: kernel/kernel bootimage.iso
-	gdb kernel/kernel -ex "target remote | \
+	$(GDB) kernel/kernel -ex "target remote | \
 	qemu-system-$(target_cpu) $(QEMUFLAGS) $(QEMUBOOT) -S -gdb stdio"
 
 # Cleanup

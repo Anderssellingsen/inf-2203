@@ -28,8 +28,11 @@ SCRIPT_NAME="$(basename "$SCRIPT_PATH")"
 srcdir="$(dirname "$SCRIPT_PATH")"
 
 # Function to print a warning/error message to stderr
+function info {
+    echo -e "$SCRIPT_NAME:" "$@"
+}
 function warn {
-    echo 1>&2 -e "$SCRIPT_NAME:" "$@"
+    1>&2 echo -e "$SCRIPT_NAME:" "$@"
 }
 
 # Process arguments.
@@ -112,11 +115,52 @@ case "$target_cpu" in
 esac
 fi
 
-# Cross-compiler prefix for GCC and binutils
-if [[ "$target" == "$host" ]]
-then targetprefix=""            # On host: use unprefixed 'gcc', etc.
-else targetprefix="$target-"    # On target: Use cross 'i386-elf-gcc', etc.
-fi
+# Find cross compilers
+case "$target" in
+    "$host") prefixes=("") ;;
+    i386-elf | i686-elf) prefixes=(i386-elf- i686-elf-) ;;
+    *) prefixes=("$target-")
+esac
+
+foundutilkeys=()
+foundutilvals=()
+
+function findutil {
+    local varname="$1"; shift
+    local lprefixes=("${prefixes[@]}")
+    if [[ "$1" == "maybeprefix" ]]; then
+        lprefixes+=("")
+        shift
+    fi
+    for util in "$@"; do
+        read -r -a utilsplit <<< "$util"
+        local binname="${utilsplit[0]}"
+        for prefix in "${lprefixes[@]}"; do
+            if which "$prefix$binname" > /dev/null; then
+                info "$(printf "found %-10s = %s\n" "$varname" "$prefix$binname")"
+                foundutilkeys+=("$varname")
+                foundutilvals+=("$prefix$binname")
+                return 0
+            fi
+        done
+    done
+    info "could not find an executable for ${lprefixes[0]}$varname"
+}
+
+info "searching for compiler tools"
+info "checking prefixes: ${prefixes[@]}"
+findutil AS as
+findutil AR ar
+findutil NM nm
+findutil OBJDUMP objdump
+findutil OBJCOPY objcopy
+findutil READELF readelf
+findutil CPP    "gcc -E" cpp
+findutil CC     gcc cc
+findutil CXX    g++ c++
+findutil LD     gcc
+findutil GDB        maybeprefix gdb
+findutil MKRESCUE   maybeprefix grub-mkrescue
 
 # Generate Makefile
 cat > Makefile <<endcat
@@ -131,21 +175,10 @@ target      = $target
 target_cpu  = $target_cpu
 target_os   = $target_os
 
-# Main compiler toolchain used in Make's builtin rules.
-# https://www.gnu.org/software/make/manual/html_node/Implicit-Variables.html
-export AS   = ${targetprefix}as
-export CPP  = ${targetprefix}gcc -E#	Use GCC in preprocess-only mode (-E)
-export CC   = ${targetprefix}gcc
-export CXX  = ${targetprefix}g++
-export LD   = ${targetprefix}gcc#	Use GCC for linking
-export AR   = ${targetprefix}ar
-export NM   = ${targetprefix}nm
-
-# Other important binutils and debugging tools we might use.
-export GDB      = ${targetprefix}gdb
-export OBJDUMP  = ${targetprefix}objdump
-export OBJCOPY  = ${targetprefix}objcopy
-export READELF  = ${targetprefix}readelf
+# binutils and compilers
+$(for i in "${!foundutilkeys[@]}"; do
+    printf "export %-10s = %s\n" "${foundutilkeys[$i]}" "${foundutilvals[$i]}"
+done)
 
 # Additions to CPPFLAGS and similar common variables.
 export CPPFLAGS         += $CPPFLAGS

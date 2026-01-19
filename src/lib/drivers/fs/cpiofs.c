@@ -267,6 +267,7 @@ static int cpio_find_path(struct file *f, const char *p, struct cpio_header *h)
 {
     int res;
     *h = (struct cpio_header){};
+    pr_debug("find_path %s\n", p);
     for (size_t i = 0; !h->is_endmarker; i++) {
         res = cpio_read_header(f, h);
         if (res < 0) return res;

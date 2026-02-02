@@ -258,13 +258,18 @@ Now, in order to use these binutils, add the binutils directory to your PATH:
     (be sure to change it to the actual location of your `$CROSS_INSTALL`
      directory):
 
-    `export PATH=$HOME/projects/uit-inf2303/cross_install/bin`
+    `export PATH=$HOME/projects/uit-inf2203/cross_install/bin:$PATH`
 
 To check if the binutils are in your path, use the `which` command:
 
 ```py
+# Cross assembler
 which i386-elf-as
 # /home/user/projects-uit-inf2203/cross_install/bin/i386-elf-as
+
+# Normal assembler
+which as
+# /usr/bin/as
 ```
 
 ### Build and install GCC
@@ -373,7 +378,7 @@ make install
 
 # Check.
 which i386-elf-gdb
-# /home/user/projects/uit-inf2303/cross_install/bin/i386-elf-gdb
+# /home/user/projects/uit-inf2203/cross_install/bin/i386-elf-gdb
 ```
 
 Bootloader: GRUB

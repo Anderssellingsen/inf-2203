@@ -15,6 +15,8 @@ typedef uint64_t ureg_t; ///< Int type for general-purpose register (64-bit)
 
 typedef uint16_t ioport_t; ///< I/O port number
 
+typedef unsigned char cpupl_t; ///< CPU Privilege Level
+
 #define PRIdREG "zd"     ///< ureg format snippet: signed decimal
 #define PRIuREG "zu"     ///< ureg format snippet: unsigned decimal
 #define PRIxREG "zx"     ///< ureg format snippet: hex
@@ -24,6 +26,14 @@ typedef uint16_t ioport_t; ///< I/O port number
 #define PRIuPORT "hu"    ///< ioport format snippet: unsigned decimal
 #define PRIxPORT "hx"    ///< ioport format snippet: hex
 #define FMT_PORT "%#4hx" ///< ioport convenient printf format
+
+#define PRIdPL "hhd"  ///< priv level format snippet: signed decimal
+#define PRIuPL "hhu"  ///< priv level format snippet: unsigned decimal
+#define PRIxPL "hhx"  ///< priv level format snippet: hex
+#define FMT_PL "%hhu" ///< priv level convenient printf format
+
+#define PL_KERNEL 0 ///< priv level for kernel
+#define PL_USER   3 ///< priv level for user
 
 /** Read input from an I/O port */
 #define IO_IN(VAL, PORT) \
@@ -68,5 +78,19 @@ static inline void outw(uint16_t val, ioport_t port) { IO_OUT(val, port); }
 static inline void outl(uint32_t val, ioport_t port) { IO_OUT(val, port); }
 
 static inline void cpu_halt(void) { asm inline volatile("hlt"); }
+
+int init_cpu(void);
+
+void           cpu_user_kstack_set(uintptr_t kstack_addr);
+_Noreturn void cpu_user_start(uintptr_t start_addr, uintptr_t ustack_addr);
+
+long syscall_dispatch(
+        long   number,
+        ureg_t arg1,
+        ureg_t arg2,
+        ureg_t arg3,
+        ureg_t arg4,
+        ureg_t arg5
+);
 
 #endif /* CPU_X86_H */

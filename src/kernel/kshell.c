@@ -409,6 +409,12 @@ int kshell_read_exec(struct kshell *sh)
         struct process *p = process_alloc();
         res               = process_load_path(p, bindir, argv[0]);
         reporterr(sh, res, "could not load %s\n", argv[0]);
+
+        /* Link process's stdio files to shell's. */
+        p->fds[0] = sh->in;  // FD 0 = stdin
+        p->fds[1] = sh->out; // FD 1 = stdout
+        p->fds[2] = sh->err; // FD 2 = stderr
+
         res = process_start(p, argc, argv);
         reporterr(sh, res, "%s exited with code %d\n", argv[0], res);
         process_close(p);

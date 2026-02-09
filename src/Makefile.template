@@ -77,6 +77,12 @@ lib/libarch.a: lib/libarch.a( $(call findobjs,lib/arch/$(target_cpu)) )
 lib/libcore.a: lib/libcore.a( $(call findobjs,lib/core) )
 lib/libdrivers.a: lib/libdrivers.a( $(call findobjs,lib/drivers) )
 
+# libc will also borrow some object files from libcore
+lib/libmulibc.a: \
+	lib/libmulibc.a( $(call findobjs,lib/mulibc) ) \
+	lib/libmulibc.a( $(call findobjs,lib/core) ) \
+	lib/libmulibc.a( sys/$(target_cpu)-$(target_os)/syscall.o )
+
 # Kernel
 # ----------------------------------------------------------------------
 
@@ -108,6 +114,37 @@ ifneq "$(target)" "$(host)"
 processes: $(processes_raw)
 processes_image += $(processes_raw)
 endif
+
+### Portable processes (with main() and C Runtime)
+
+# Normal (non-raw) processes will be built normally.
+processes_portable := $(filter-out %-raw,$(processes))
+
+# Build portable processes by default.
+processes: $(processes_portable)
+processes_image += $(processes_portable)
+
+# C Runtime: crt0 and libc
+# ----------------------------------------------------------------------
+
+# C Preprocessor: Add the mulibc directory to the #include search path
+# so that includes like #include <stdio.h> will find mulibc's version.
+CPPFLAGS += -I $(srcdir)/lib/mulibc
+CPPFLAGS += -I $(srcdir)/lib/core
+
+# Copy mulibc to sys directory where it can be found and used as
+# the default libc when cross-compiling.
+lib/sys/$(target_cpu)-$(target_os)/libc.a: lib/libmulibc.a
+	cp $< $@
+
+# Add the target sys/ directory to the linker's search path.
+$(processes_portable): LDFLAGS += -B lib/sys/$(target_cpu)-$(target_os)
+
+# Add an implicit Make dependency on the implicity linked crt0 and libc.
+$(processes_portable): .EXTRA_PREREQS += \
+	lib/sys/$(target_cpu)-$(target_os)/crt0.o \
+	lib/sys/$(target_cpu)-$(target_os)/crt1.o \
+	lib/sys/$(target_cpu)-$(target_os)/libc.a
 
 # Bootable Disk Image
 # ======================================================================

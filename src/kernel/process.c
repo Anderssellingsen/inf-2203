@@ -6,6 +6,7 @@
 
 #include <abi.h>
 #include <cpu.h>
+#include <cpu_pagemap.h>
 
 #include <drivers/fileformat/elf.h>
 #include <drivers/log.h>
@@ -22,6 +23,8 @@
 static struct process pcb[PROCESS_MAX];
 static pid_t          next_pid = 1;
 
+struct process *current_process;
+
 struct process *process_alloc(void)
 {
     for (int i = 0; i < PROCESS_MAX; i++)
@@ -36,6 +39,28 @@ int process_load_path(struct process *p, const char *cwd, const char *path)
     /* Reset struct. */
     *p = (struct process){.pid = next_pid++};
     path_basename(p->name, DEBUGSTR_MAX, path);
+
+    /* Set stack addresses. */
+    p->ustack = USTACK_DFLT;
+    p->kstack = KSTACK_DFLT;
+
+    res = addrspc_init(&p->addrspc);
+    if (res < 0) goto error;
+
+        /* Use this address space.
+     * We'll need to update the address space as we load the ELF segments. */
+        //TODO: Turn this on when ready
+        //pm_set_root(p->addrspc.root_entry);
+
+    /* Make user stack writeable. */
+    size_t    ustack_sz = PAGESZ;
+    uintptr_t ustack_low =
+            STACK_DIR == STACK_DOWN ? p->ustack - ustack_sz : p->ustack;
+    res = addrspc_map(
+            &p->addrspc, (void *) ustack_low, ustack_low, ustack_sz,
+            PME_USER | PME_W
+    );
+    if (res < 0) goto error;
 
     /* Open file. */
     res = file_open_path(&p->execfile, cwd, path);
@@ -57,31 +82,76 @@ int process_load_path(struct process *p, const char *cwd, const char *path)
         /* Skip non-load segments. */
         if (phdr.p_type != PT_LOAD) continue;
 
+        /* Set permissions for segment pages. */
+        uintptr_t vaddr = ALIGN_DOWN(phdr.p_vaddr, phdr.p_align);
+        uintptr_t paddr = vaddr;
+        size_t    size  = ALIGN_UP(phdr.p_memsz, phdr.p_align);
+
+        pme_t flags = PME_USER;
+        if (phdr.p_flags & PF_W) flags |= PME_W;
+
+            // TODO: set flags appropriately for ELF segment
+
             /* Load. */
         TODO();
     }
 
     return 0;
+
 error:
+    addrspc_cleanup(&p->addrspc);
     if (file_isopen) file_close(&p->execfile);
     return res;
 }
 
 void process_close(struct process *p)
 {
+    if (p == current_process) current_process = NULL;
+    pm_set_root(kernel_addrspc.root_entry);
+    addrspc_cleanup(&p->addrspc);
     file_close(&p->execfile);
     *p = (struct process){};
 }
 
 typedef int main_fn(int argc, char *argv[]);
 
+/**
+ * Push a string onto a stack
+ *
+ * Adjusts the stack pointer and returns a pointer to the start of the string.
+ */
+static char *push_str(ureg_t **stack, char *str)
+{
+    if (!str) return NULL;
+
+    int   slots = ALIGN_UP(strlen(str) + 1, sizeof(ureg_t)) / sizeof(ureg_t);
+    char *dst;
+
+    switch (STACK_DIR) {
+    case STACK_DOWN:
+        *stack -= slots;       // Make room for string.
+        dst = (char *) *stack; // Start of string is current position.
+        break;
+    case STACK_UP:
+        dst = (char *) (*stack + 1); // Start of string is next slot.
+        *stack += slots;             // Adjust stack to end of string.
+        break;
+    }
+
+    strcpy(dst, str);
+    return dst;
+}
+
 enum start_strategy {
     PSTART_CALL,
+    PSTART_LAUNCH,
 };
 
 int process_start(struct process *p, int argc, char *argv[])
 {
     enum start_strategy start_strat = PSTART_CALL;
+
+    current_process = p;
 
     switch (start_strat) {
     case PSTART_CALL: {
@@ -93,5 +163,13 @@ int process_start(struct process *p, int argc, char *argv[])
     };
 
     return -ENOTSUP;
+}
+
+void process_kill(struct process *p)
+{
+    if (!p) return;
+    pr_info("killing process %d (%s)\n", p->pid, p->name);
+    process_close(p);
+    if (p == current_process) kernel_noreturn();
 }
 

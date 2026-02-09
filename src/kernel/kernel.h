@@ -8,4 +8,6 @@
 #define KERNEL_VERSION "v2026-P1"
 #endif
 
+_Noreturn void kernel_noreturn(void);
+
 #endif /* KERNEL_START_H */

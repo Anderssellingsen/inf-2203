@@ -1,6 +1,7 @@
 #include "kernel.h"
 
 #include "kshell.h"
+#include "pagemap.h"
 
 #include <boot.h>
 #include <cpu.h>
@@ -52,6 +53,15 @@ static int mount_initrd(void)
     return 0;
 }
 
+_Noreturn void kernel_noreturn(void)
+{
+    pr_info("control reached a dead end in kernel, dropping to shell\n");
+    for (;;) {
+        int res = kshell_init_run();
+        log_result(res, "kshell returned\n");
+    }
+}
+
 int kernel_main(void)
 {
     int res;
@@ -61,6 +71,11 @@ int kernel_main(void)
     if (res < 0) return res;
     init_log();
     read_boot_info(&boot_info);
+
+    /* Init CPU and memory. */
+    init_cpu();
+    // TODO: Initialize Page Map subsystem
+    //init_pm();
 
     /* Init more essential drivers. */
     init_driver_ramdisk();
@@ -73,7 +88,5 @@ int kernel_main(void)
     /* Start shell. */
     kshell_init_run();
 
-    pr_info("nothing more to do; returning to bootloader to restart...\n");
-    return 0;
+    kernel_noreturn();
 }
-

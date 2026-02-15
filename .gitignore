@@ -1,0 +1,91 @@
+# Output directories
+out/
+
+# Downloaded third-party source code
+thirdparty/binutils-*
+thirdparty/gcc-*
+thirdparty/gdb-*
+thirdparty/bochs-*
+thirdparty/*.tar.gz
+
+# Object files
+*.o
+*.a
+
+# Dependency files
+*.d
+
+# Compiler generated headers
+asm-offsets.s
+asm-offsets.h.s
+
+# Binaries
+*/boot/bootblock
+*/kernel/kernel
+*/process/shell
+*/process/process1
+*/process/process2
+*/process/process3
+*/process/process4
+createimage
+
+# Generated disk image
+image
+
+# Unit test programs binaries
+test_lib*
+
+# Lists of symbols used to build alternate versions of our standard library
+lib*.sym*.txt
+lib*.sym*.txt.*
+
+# serial output
+serial.out
+
+# debug symbols for Bochs
+*.sym
+bochsdebug.out
+
+# Given files
+!*.given.o
+!*.given
+
+# Simulator
+shell_sim
+image_sim
+p6sh
+
+# Leftovers from common tools
+# ============================
+
+# Editor project configurations
+.vscode
+
+# Tags
+TAGS
+tags
+
+# clang tooling
+compile_commands.json
+.cache/clangd
+
+# GDB init
+.gdbinit
+
+# HTML previews of Markdown documents
+*.md.html
+
+# Python scripts
+__pycache__/
+*.pyc
+
+# OpenOffice / LibreOffice lock files
+.~lock.*#
+
+# Internal artifacts that are not supposed to make it into published code
+# =======================================================================
+*.pptx
+src_only/
+Makefile.buildas
+buildas.h
+.generated-project.*

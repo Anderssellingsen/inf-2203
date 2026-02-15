@@ -1,0 +1,148 @@
+---
+# Prefered C style for new development (2023 going forward)
+#
+# Based mostly on the Linux Kernel coding style
+#
+#   https://www.kernel.org/doc/html/latest/process/coding-style.html
+#
+
+# LLVM is the clang-supported base template that gets us closest
+BasedOnStyle: LLVM
+
+
+## Indentation and text width
+
+# Use a modern 4-column indentation without hard tabs.
+#
+# I appreciate the arguments in the Linux style guide, but I just can't get
+# used to the look of 8-column hard tabs, especially when the editor shows tab
+# chars. I imagine that students will be more used to 4-space indent as well.
+# ---Mike
+#
+IndentWidth: 4
+ContinuationIndentWidth: 8
+UseTab: Never
+
+# The classic: 80 columns, with column 80 itself as a "gutter"
+ColumnLimit: 79
+
+# More indent tweaks
+IndentCaseLabels: false
+
+
+## Braces
+
+# Linux style
+#
+# - the brace to open a function is on a new line
+# - others opening braces are on the same line
+#
+BreakBeforeBraces: Linux
+
+
+## Includes
+
+SortIncludes:    CaseSensitive
+IncludeBlocks:   Regroup
+IncludeIsMainRegex: '(_[a-zA-Z0-9_]+)?$'
+IncludeCategories:
+
+  # --- Freestanding headers (provided by the compiler itself) ---
+
+  # ISO C freestanding headers
+  - Regex:  '^[<"](float|iso646|limits|stdalign|stdarg|stdbit|stdbool|stddef|stdint|stdnoreturn)\.h[>"]$'
+    SortPriority: 65
+    Priority: 70
+
+  # Additional headers that GCC provides in freestanding omde
+  - Regex:  '^[<"](cet|cpuid|gcov|stdatomic|unwind)\.h[>"]$'
+    SortPriority: 60
+    Priority: 70
+
+  # --- Kernel library headers (lower level) ---
+
+  # Core library
+  - Regex:  '^<core/.*\.h>$'
+    SortPriority: 50
+    Priority: 50
+
+  # Arch library
+  - Regex:  '^<arch/.*\.h>$'
+    SortPriority: 45
+    Priority: 40
+
+  # Drivers library
+  - Regex:  '^<drivers/.*\.h>$'
+    SortPriority: 40
+    Priority: 40
+
+  # --- Standard library headers ---
+
+  # Hosted standard library headers (our libc implementation)
+  - Regex:  '^[<"](assert|complex|ctype|errno|fenv|inttypes|locale|math|signal|std.*|string|strings|tgmath|threads|time|uchar|wchar|wctype)\.h[">]$'
+    SortPriority: 30
+    Priority: 30
+
+  # --- Other headers ---
+
+  # Other system includes (angle brackets)
+  - Regex:  '^<.*>$'
+    SortPriority: 20
+    Priority: 20
+
+  # Local includes (specified with quotes)
+  - Regex:  '^".*"$'
+    SortPriority: 10
+    Priority: 10
+
+  # --- Priority 0 is always the "main" header: e.g. kernel.h for kernel.c ---
+
+## Alignment
+
+# Align many types of statements if they appear consectutively.
+# As much as it messes up diffs, I love the neatness of it. ---Mike
+AlignConsecutiveMacros:       Consecutive
+AlignConsecutiveAssignments:  Consecutive
+AlignConsecutiveBitFields:    Consecutive
+AlignConsecutiveDeclarations: Consecutive
+
+#AlignArrayOfStructures: Left     # This feature seems buggy, disable for now
+
+# Aligned backslashes (in e.g. multi-line macros) look great but they fall
+# apart easily and then they look terrible.
+AlignEscapedNewlines:   DontAlign
+
+
+## Compressing short constructs
+
+# Allow for functions, but not ifs/blocks/loops
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+
+
+## Breaking long constructs
+
+# Function params/args that don't fit on one line
+AlignAfterOpenBracket: BlockIndent
+BinPackParameters: false
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+
+# Strings that don't fit on one line
+AlwaysBreakBeforeMultilineStrings: true
+
+# Expressions that don't fit on one line:
+#   put operators on next line and align them
+BreakBeforeBinaryOperators: NonAssignment
+
+# Do not change wrapping in comments.
+ReflowComments: false
+
+## Other style choices
+
+#BreakAfterAttributes: Always   # Requires newer clang-format version
+SpaceAfterCStyleCast: true
+...
